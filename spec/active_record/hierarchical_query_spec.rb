@@ -12,6 +12,19 @@ describe ActiveRecord::HierarchicalQuery do
   let!(:child_5) { klass.create(parent: child_4, trait_id: trait_id) }
 
   describe '#join_recursive' do
+    describe 'specifying a a UUID as the start_with ID and using depth, WHERE and ORDER' do
+      it "does not raise an error" do
+        relation = klass.join_recursive do |query|
+          query.
+            start_with(id: root.id) { select("0 depth") }.
+            select(query.prior[:depth] + 1, start_with: false).
+            connect_by(id: :parent_id)
+        end
+
+        relation.where(trait_id: 'trait').order("depth ASC").first
+      end
+    end
+
     describe 'UNION clause' do
       let(:options) { {} }
       subject { klass.join_recursive(options) { connect_by(id: :parent_id) }.to_sql }
